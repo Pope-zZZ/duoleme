@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="夺了么">
+    <meta name="description" content="三角洲行动随机跳点转盘">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>夺了么</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* 地图切换面板 */
+        .map-panel {
+            width: 180px;
+            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+            border: 3px solid #00d9ff;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .map-panel-title {
+            color: #00d9ff;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .map-btn {
+            padding: 12px 15px;
+            background: linear-gradient(145deg, #3a3a5a, #2a2a4a);
+            border: 2px solid #555;
+            border-radius: 10px;
+            color: #aaa;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .map-btn:hover {
+            border-color: #00d9ff;
+            color: #fff;
+            transform: translateX(5px);
+        }
+
+        .map-btn.active {
+            background: linear-gradient(145deg, #00d9ff, #00a8cc);
+            border-color: #00d9ff;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .map-info {
+            color: #888;
+            font-size: 11px;
+            text-align: center;
+            margin-top: 5px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+        }
+
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .title {
+            color: #fff;
+            font-size: 36px;
+            margin-bottom: 10px;
+            margin-top: -30px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            text-align: center;
+            width: 100%;
+        }
+
+        /* 结果显示框 */
+        .result-box {
+            width: 320px;
+            height: 55px;
+            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+            border: 3px solid #e94560;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            box-shadow: 0 0 25px rgba(233, 69, 96, 0.4), inset 0 0 15px rgba(0,0,0,0.3);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .result-text {
+            color: #fff;
+            font-size: 22px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.8);
+        }
+
+        /* 倒计时显示框 */
+        .countdown-box {
+            width: 200px;
+            height: 45px;
+            background: linear-gradient(145deg, #1a3a2a, #0a2a1a);
+            border: 3px solid #00d9ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.4), inset 0 0 10px rgba(0,0,0,0.3);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .countdown-text {
+            color: #00d9ff;
+            font-size: 20px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+        }
+
+        /* 转盘容器 */
+        .wheel-container {
+            position: relative;
+            width: 420px;
+            height: 420px;
+            margin-bottom: 35px;
+        }
+
+        /* 转盘 */
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5), 0 0 100px rgba(233, 69, 96, 0.2);
+            transition: transform 0.016s linear;
+            border: 4px solid #333;
+        }
+
+        /* 中心圆 */
+        .center-circle {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #e94560 0%, #c73e54 50%, #a03040 100%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 0 25px rgba(233, 69, 96, 0.7), inset 0 0 15px rgba(255,255,255,0.3);
+            border: 4px solid #fff;
+        }
+
+        /* 指针 */
+        .pointer {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-bottom: 50px solid #e94560;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            filter: drop-shadow(0 0 15px rgba(233, 69, 96, 0.9));
+        }
+
+        .pointer::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #e94560;
+            border-radius: 50%;
+            top: 38px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 3px solid #fff;
+        }
+
+        /* 外圈装饰 */
+        .wheel-outer {
+            position: absolute;
+            width: 440px;
+            height: 440px;
+            border: 6px solid #e94560;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            box-shadow: 0 0 35px rgba(233, 69, 96, 0.6);
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 16px 55px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-start {
+            background: linear-gradient(145deg, #00d9ff, #00a8cc);
+            color: #fff;
+            box-shadow: 0 8px 25px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-start:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 217, 255, 0.6);
+        }
+
+        .btn-stop {
+            background: linear-gradient(145deg, #e94560, #c73e54);
+            color: #fff;
+            box-shadow: 0 8px 25px rgba(233, 69, 96, 0.4);
+            animation: pulse 0.8s infinite;
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(233, 69, 96, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 提示文字 */
+        .hint {
+            color: #888;
+            font-size: 13px;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        /* 右侧信息面板 */
+        .side-panel {
+            width: 200px;
+            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+            border: 3px solid #e94560;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
+            max-height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .beijing-time-box {
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #444;
+            margin-bottom: 15px;
+        }
+
+        .beijing-time-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .beijing-time {
+            color: #00d9ff;
+            font-size: 26px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .beijing-date {
+            color: #aaa;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .history-title {
+            color: #e94560;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .history-list {
+            overflow-y: auto;
+            flex: 1;
+            max-height: 280px;
+        }
+
+        .history-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 6px;
+            border-left: 3px solid #00d9ff;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .history-time {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .history-location {
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* 清空按钮 */
+        .clear-btn {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            background: #444;
+            border: none;
+            border-radius: 8px;
+            color: #aaa;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #e94560;
+            color: #fff;
+        }
+
+        /* 滚动条样式 */
+        .history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .history-list::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+
+        /* 空状态 */
+        .empty-history {
+            color: #666;
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+        }
+
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .side-panel {
+                width: 100%;
+                max-width: 350px;
+                max-height: 200px;
+            }
+
+            .map-panel {
+                width: 100%;
+                max-width: 350px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .map-panel-title {
+                width: 100%;
+            }
+
+            .map-btn {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .history-list {
+                max-height: 120px;
+            }
+
+            .beijing-time {
+                font-size: 24px;
+            }
+
+            .wheel-container {
+                width: 300px;
+                height: 300px;
+            }
+
+            .wheel-outer {
+                width: 320px;
+                height: 320px;
+            }
+
+            .title {
+                font-size: 22px;
+            }
+
+            .result-box {
+                width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">🎯 夺了么</h1>
+    
+    <div class="main-container">
+        <!-- 左侧：地图切换面板 -->
+        <div class="map-panel">
+            <div class="map-panel-title">🗺️ 地图选择</div>
+            <button class="map-btn active" id="mapBtn1" onclick="switchMap(0)">零号大坝</button>
+            <button class="map-btn" id="mapBtn2" onclick="switchMap(1)">航天基地</button>
+            <div class="map-info" id="mapInfo">16个区域</div>
+        </div>
+
+        <!-- 中间：转盘区域 -->
+        <div class="wheel-section">
+            <!-- 结果显示框 -->
+            <div class="result-box">
+                <span class="result-text" id="resultText">点击开始转动</span>
+            </div>
+
+            <!-- 倒计时显示框 -->
+            <div class="countdown-box">
+                <span class="countdown-text" id="countdownText">准备就绪</span>
+            </div>
+
+            <!-- 转盘容器 -->
+            <div class="wheel-container">
+                <div class="wheel-outer"></div>
+                <div class="wheel" id="wheel"></div>
+                <div class="center-circle"></div>
+                <div class="pointer"></div>
+            </div>
+
+            <!-- 控制按钮 -->
+            <button class="btn btn-start" id="controlBtn" onclick="toggleSpin()">开始</button>
+            <p class="hint">点击开始5秒后自动停止，或手动点击停止</p>
+        </div>
+
+        <!-- 右侧信息面板 -->
+        <div class="side-panel">
+        <div class="beijing-time-box">
+            <div class="beijing-time-label">北京时间</div>
+            <div class="beijing-time" id="beijingTime">00:00:00</div>
+            <div class="beijing-date" id="beijingDate">2026-01-01</div>
+        </div>
+        
+        <div class="history-title">📜 历史记录</div>
+        <div class="history-list" id="historyList">
+            <div class="empty-history">暂无记录</div>
+        </div>
+        
+        <button class="clear-btn" onclick="clearHistory()">清空记录</button>
+    </div>
+    </div>
+
+    <script>
+        // 地图数据
+        const maps = [
+            {
+                name: '零号大坝',
+                sectors: [
+                    '管道', '军营', '水泥厂', '河滩',
+                    '地下', '西楼', '东楼', '集装箱',
+                    '金库', '小电', '大电', '小军营',
+                    '养护站', '坝顶', '游客', '撤离点'
+                ]
+            },
+            {
+                name: '航天基地',
+                sectors: [
+                    '火发', '桥上', '小米之家', '花园',
+                    '码头', '离心', '浮力', '蓝室',
+                    '黑室', '总裁', '中控桥', '二员',
+                    '中控', '沙地', '牢大', '牢二',
+                    '牢三', '宿舍', '西大', '一员'
+                ]
+            }
+        ];
+
+        // 颜色池（支持最多20个区域）
+        const colorPool = [
+            '#e74c3c', '#3498db', '#2ecc71', '#f39c12',
+            '#9b59b6', '#1abc9c', '#e67e22', '#34495e',
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4',
+            '#ffeaa7', '#fd79a8', '#a29bfe', '#00b894',
+            '#ff7675', '#74b9ff', '#55efc4', '#fdcb6e'
+        ];
+
+        let currentMapIndex = 0;
+        let sectors = maps[0].sectors;
+        let colors = colorPool.slice(0, sectors.length);
+
+        const wheel = document.getElementById('wheel');
+        const resultText = document.getElementById('resultText');
+        const countdownText = document.getElementById('countdownText');
+        const controlBtn = document.getElementById('controlBtn');
+        const beijingTimeEl = document.getElementById('beijingTime');
+        const beijingDateEl = document.getElementById('beijingDate');
+        const historyListEl = document.getElementById('historyList');
+
+        let currentRotation = 0;
+        let isSpinning = false;
+        let animationId = null;
+        let autoStopTimeout = null;
+        let countdownInterval = null;
+        let currentSpeed = 0;
+        let countdownValue = 5;
+        let spinHistory = [];
+
+        // 创建扇形和文字
+        function createWheel() {
+            // 清空现有内容
+            wheel.innerHTML = '';
+            
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const sectorCount = sectors.length;
+            const anglePerSector = 360 / sectorCount;
+            const radius = 210;
+            const center = 210;
+            
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', '0 0 420 420');
+            svg.style.position = 'absolute';
+            svg.style.top = '0';
+            svg.style.left = '0';
+            
+            sectors.forEach((sector, index) => {
+                const startAngle = index * anglePerSector;
+                const endAngle = (index + 1) * anglePerSector;
+                
+                const startRad = (startAngle - 90) * Math.PI / 180;
+                const endRad = (endAngle - 90) * Math.PI / 180;
+                
+                const x1 = center + radius * Math.cos(startRad);
+                const y1 = center + radius * Math.sin(startRad);
+                const x2 = center + radius * Math.cos(endRad);
+                const y2 = center + radius * Math.sin(endRad);
+                
+                const path = document.createElementNS(svgNS, 'path');
+                const largeArc = anglePerSector > 180 ? 1 : 0;
+                const d = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                path.setAttribute('d', d);
+                path.setAttribute('fill', colors[index]);
+                path.setAttribute('stroke', '#fff');
+                path.setAttribute('stroke-width', '2');
+                svg.appendChild(path);
+                
+                const midAngle = (startAngle + endAngle) / 2 - 90;
+                const textRadius = 140;
+                const textX = center + textRadius * Math.cos(midAngle * Math.PI / 180);
+                const textY = center + textRadius * Math.sin(midAngle * Math.PI / 180);
+                
+                const text = document.createElementNS(svgNS, 'text');
+                text.setAttribute('x', textX);
+                text.setAttribute('y', textY);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('fill', '#fff');
+                text.setAttribute('font-size', sectorCount > 16 ? '14' : '16');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('style', 'text-shadow: 2px 2px 4px rgba(0,0,0,0.9);');
+                
+                const rotation = midAngle + 90;
+                text.setAttribute('transform', `rotate(${rotation}, ${textX}, ${textY})`);
+                
+                text.textContent = sector;
+                svg.appendChild(text);
+            });
+            
+            wheel.appendChild(svg);
+        }
+
+        // 切换地图
+        function switchMap(mapIndex) {
+            if (isSpinning) return; // 转动中不允许切换
+            
+            currentMapIndex = mapIndex;
+            sectors = maps[mapIndex].sectors;
+            colors = colorPool.slice(0, sectors.length);
+            
+            // 更新按钮状态
+            document.getElementById('mapBtn1').className = mapIndex === 0 ? 'map-btn active' : 'map-btn';
+            document.getElementById('mapBtn2').className = mapIndex === 1 ? 'map-btn active' : 'map-btn';
+            
+            // 更新地图信息
+            document.getElementById('mapInfo').textContent = `${sectors.length}个区域`;
+            
+            // 重置转盘
+            currentRotation = 0;
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+            createWheel();
+            updateDisplay();
+            resultText.textContent = '点击开始转动';
+        }
+
+        // 获取当前指向的区域
+        function getCurrentSector() {
+            const normalizedRotation = (360 - (currentRotation % 360)) % 360;
+            const sectorIndex = Math.floor(normalizedRotation / (360 / sectors.length));
+            return sectors[sectorIndex];
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            const sector = getCurrentSector();
+            resultText.textContent = sector;
+        }
+
+        // 更新北京时间
+        function updateBeijingTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateStr = now.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            beijingTimeEl.textContent = timeStr;
+            beijingDateEl.textContent = dateStr;
+        }
+
+        // 添加到历史记录
+        function addToHistory(location) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            spinHistory.unshift({ time: timeStr, location: location });
+            renderHistory();
+        }
+
+        // 渲染历史记录
+        function renderHistory() {
+            if (spinHistory.length === 0) {
+                historyListEl.innerHTML = '<div class="empty-history">暂无记录</div>';
+                return;
+            }
+            
+            historyListEl.innerHTML = spinHistory.map(item => `
+                <div class="history-item">
+                    <div class="history-time">${item.time}</div>
+                    <div class="history-location">${item.location}</div>
+                </div>
+            `).join('');
+        }
+
+        // 清空历史记录
+        function clearHistory() {
+            spinHistory = [];
+            renderHistory();
+        }
+
+        // 动画循环
+        function animate() {
+            if (!isSpinning) return;
+            
+            currentRotation += currentSpeed;
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+            updateDisplay();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 开始转动
+        function startSpin() {
+            isSpinning = true;
+            currentSpeed = 12 + Math.random() * 4;
+            countdownValue = 5;
+            
+            controlBtn.textContent = '停止';
+            controlBtn.className = 'btn btn-stop';
+            countdownText.textContent = '5.0秒后停止';
+            
+            animate();
+            
+            countdownInterval = setInterval(() => {
+                countdownValue -= 0.1;
+                if (countdownValue > 0) {
+                    countdownText.textContent = `${countdownValue.toFixed(1)}秒后停止`;
+                } else {
+                    countdownText.textContent = '即将停止...';
+                }
+            }, 100);
+            
+            autoStopTimeout = setTimeout(() => {
+                if (isSpinning) {
+                    stopSpin();
+                }
+            }, 5000);
+        }
+
+        // 停止转动
+        function stopSpin() {
+            clearTimeout(autoStopTimeout);
+            clearInterval(countdownInterval);
+            
+            const decelerate = () => {
+                currentSpeed *= 0.96;
+                
+                if (currentSpeed < 0.3) {
+                    currentSpeed = 0;
+                    isSpinning = false;
+                    controlBtn.textContent = '开始';
+                    controlBtn.className = 'btn btn-start';
+                    countdownText.textContent = '准备就绪';
+                    cancelAnimationFrame(animationId);
+                    
+                    const finalSector = getCurrentSector();
+                    resultText.textContent = `🎉 ${finalSector} 🎉`;
+                    resultText.style.color = '#00ff88';
+                    
+                    // 添加到历史记录
+                    addToHistory(finalSector);
+                    
+                    setTimeout(() => {
+                        resultText.style.color = '#fff';
+                    }, 1500);
+                } else {
+                    currentRotation += currentSpeed;
+                    wheel.style.transform = `rotate(${currentRotation}deg)`;
+                    updateDisplay();
+                    requestAnimationFrame(decelerate);
+                }
+            };
+            
+            cancelAnimationFrame(animationId);
+            decelerate();
+        }
+
+        // 切换状态
+        function toggleSpin() {
+            if (isSpinning) {
+                stopSpin();
+            } else {
+                startSpin();
+            }
+        }
+
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(function(registration) {
+                console.log('ServiceWorker 注册成功');
+            }).catch(function(err) {
+                console.log('ServiceWorker 注册失败: ', err);
+            });
+        }
+
+        // 初始化
+        createWheel();
+        updateDisplay();
+        updateBeijingTime();
+        setInterval(updateBeijingTime, 1000);
+    </script>
+</body>
+</html>
